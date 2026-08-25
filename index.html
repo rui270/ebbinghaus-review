@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ebbinghaus Review Scheduler</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e293b">
+</head>
+<body>
+
+<div class="app-container">
+<header class="app-header">
+<h1>復習スケジューラー</h1>
+<p class="subtitle">エビングハウスの忘却曲線に基づく学習管理</p>
+</header>
+
+<!-- 達成率ゲージ -->
+<section class="card progress-card">
+<div class="progress-header">
+<span>本日の復習達成率</span>
+<span id="progress-percent">0%</span>
+</div>
+<div class="progress-bar-bg">
+<div id="progress-bar" class="progress-bar-fill"></div>
+</div>
+</section>
+
+<!-- 機能ボタンエリア -->
+<section class="action-buttons">
+<button id="btn-notify" class="btn btn-secondary">
+🔔 通知をオンにする
+</button>
+<button id="btn-export-ics" class="btn btn-secondary">
+📅 カレンダー書き出し (.ics)
+</button>
+</section>
+
+<!-- 今日の復習（最優先表示） -->
+<section class="card highlight-card">
+<h2>🔥 今日復習すべきこと</h2>
+<div id="today-list" class="item-list">
+<!-- JSで動的生成 -->
+</div>
+</section>
+
+<!-- 学習項目の登録フォーム -->
+<section class="card">
+<h2>📝 新しい学習項目を登録</h2>
+<form id="add-form">
+<div class="form-group">
+<label for="title">科目・単元名</label>
+<input type="text" id="title" placeholder="例：数学III 置換積分" required>
+</div>
+<div class="form-group">
+<label for="learn-date">学習日</label>
+<input type="date" id="learn-date" required>
+</div>
+<button type="submit" class="btn btn-primary">登録する</button>
+</form>
+</section>
+
+<!-- スケジュール一覧 -->
+<section class="card">
+<h2>📆 これからの復習スケジュール</h2>
+<div id="future-schedule" class="schedule-group">
+<!-- JSで動的生成 -->
+</div>
+</section>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
