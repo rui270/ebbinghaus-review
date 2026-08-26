@@ -50,6 +50,28 @@ renderDashboard();
 document.getElementById('title').value = '';
 }
 
+// タスク削除処理
+function deleteTask(taskId) {
+if (confirm('この学習項目を削除してもよろしいですか？')) {
+tasks = tasks.filter(task => task.id !== taskId);
+saveTasks();
+renderDashboard();
+}
+}
+
+// タスク編集処理
+function editTask(taskId) {
+const task = tasks.find(t => t.id === taskId);
+if (!task) return;
+
+const newTitle = prompt('新しい科目・単元名を入力してください:', task.title);
+if (newTitle && newTitle.trim() !== '') {
+task.title = newTitle.trim();
+saveTasks();
+renderDashboard();
+}
+}
+
 // 保存
 function saveTasks() {
 localStorage.setItem('ebbinghaus_tasks', JSON.stringify(tasks));
@@ -86,6 +108,7 @@ todayListEl.appendChild(itemEl);
 } else if (review.date > todayStr) {
 if (!futureMap[review.date]) futureMap[review.date] = [];
 futureMap[review.date].push({
+taskId: task.id,
 title: task.title,
 days: review.days,
 completed: review.completed
@@ -122,7 +145,7 @@ const listEl = document.createElement('div');
 listEl.className = 'item-list';
 
 futureMap[date].forEach(item => {
-const row = createItemRow(item.title, `${item.days}日後`, item.completed, null);
+const row = createItemRow(item.title, `${item.days}日後`, item.completed, null, item.taskId);
 listEl.appendChild(row);
 });
 
@@ -133,7 +156,7 @@ futureScheduleEl.appendChild(groupEl);
 }
 
 // 行エレメント生成Helper
-function createItemRow(title, badgeText, isCompleted, onToggle) {
+function createItemRow(title, badgeText, isCompleted, onToggle, taskId = null) {
 const row = document.createElement('div');
 row.className = 'item-row';
 
@@ -152,13 +175,46 @@ info.appendChild(titleEl);
 info.appendChild(badge);
 row.appendChild(info);
 
+// ボタン格納用エリア
+const actionArea = document.createElement('div');
+actionArea.style.display = 'flex';
+actionArea.style.gap = '8px';
+actionArea.style.alignItems = 'center';
+
+// 「今日の復習」用の完了ボタン
 if (onToggle) {
 const btn = document.createElement('button');
 btn.className = `btn-complete ${isCompleted ? 'done' : ''}`;
 btn.innerText = isCompleted ? '完了済' : '完了';
 btn.addEventListener('click', onToggle);
-row.appendChild(btn);
+actionArea.appendChild(btn);
 }
+
+// スケジュール一覧用の編集・削除ボタン
+if (taskId) {
+const editBtn = document.createElement('button');
+editBtn.innerText = '✏️';
+editBtn.title = '編集';
+editBtn.style.background = 'transparent';
+editBtn.style.border = 'none';
+editBtn.style.cursor = 'pointer';
+editBtn.style.fontSize = '1.1rem';
+editBtn.addEventListener('click', () => editTask(taskId));
+
+const deleteBtn = document.createElement('button');
+deleteBtn.innerText = '🗑️';
+deleteBtn.title = '削除';
+deleteBtn.style.background = 'transparent';
+deleteBtn.style.border = 'none';
+deleteBtn.style.cursor = 'pointer';
+deleteBtn.style.fontSize = '1.1rem';
+deleteBtn.addEventListener('click', () => deleteTask(taskId));
+
+actionArea.appendChild(editBtn);
+actionArea.appendChild(deleteBtn);
+}
+
+row.appendChild(actionArea);
 
 return row;
 }
