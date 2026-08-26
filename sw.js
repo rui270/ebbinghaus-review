@@ -22,3 +22,18 @@ return response || fetch(e.request);
 })
 );
 });
+
+// 通知をタップしたときにアプリを開く処理
+self.addEventListener('notificationclick', (e) => {
+e.notification.close();
+e.waitUntil(
+clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+for (const client of clientList) {
+if (client.url.includes('index.html') || client.url === '/' || client.url.endsWith('/')) {
+return client.focus();
+}
+}
+if (clients.openWindow) return clients.openWindow('./');
+})
+);
+});
