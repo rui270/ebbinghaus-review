@@ -294,3 +294,52 @@ console.error('ServiceWorker 登録失敗:', err);
 });
 }
 }
+
+// 通知を送信するヘルパー関数
+function sendNotification(title, body) {
+if (Notification.permission === 'granted') {
+if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+navigator.serviceWorker.ready.then(reg => {
+reg.showNotification(title, { body: body, icon: 'icon.png' });
+});
+} else {
+new Notification(title, { body: body, icon: 'icon.png' });
+}
+}
+}
+
+// 午前8時・午後9時の自動通知チェックロジック
+function checkAndSendScheduledNotification() {
+if (Notification.permission !== 'granted') return;
+
+const now = new Date();
+const todayStr = now.toISOString().split('T')[0];
+const hours = now.getHours();
+
+let todayTotal = 0;
+let todayUncompleted = 0;
+
+tasks.forEach(task => {
+task.reviews.forEach(review => {
+if (review.date === todayStr) {
+todayTotal++;
+if (!review.completed) todayUncompleted++;
+}
+});
+});
+
+const morningKey = `notified_morning_${todayStr}`;
+const eveningKey = `notified_evening_${todayStr}`;
+
+// ① 午前8時の通知
+if (hours === 8 && todayTotal > 0 && !localStorage.getItem(morningKey)) {
+sendNotification('☀️ おはようございます！', `今日は復習が${todayTotal}件あります。`);
+localStorage.setItem(morningKey, 'true');
+}
+
+// ② 午後9時の通知
+if (hours === 21 && todayUncompleted > 0 && !localStorage.getItem(eveningKey)) {
+sendNotification('🔥 今日の復習、まだ間に合います！', `未完了の復習が${todayUncompleted}件あります。`);
+localStorage.setItem(eveningKey, 'true');
+}
+}
