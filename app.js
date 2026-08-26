@@ -13,6 +13,9 @@ document.getElementById('learn-date').value = todayStr;
 renderDashboard();
 setupEventListeners();
 registerServiceWorker();
+  
+checkAndSendScheduledNotification();
+setInterval(checkAndSendScheduledNotification, 60 * 1000);
 });
 
 // イベントリスナー設定
