@@ -1,6 +1,6 @@
 {
 "name": "復習スケジューラー",
-"short_name": "復習アプリ",
+"short_name": "復習スケジューラー",
 "start_url": "./index.html",
 "display": "standalone",
 "background_color": "#0f172a",
