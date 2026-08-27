@@ -12,17 +12,12 @@ document.getElementById('learn-date').value = todayStr;
 
 renderDashboard();
 setupEventListeners();
-registerServiceWorker();
-  
-checkAndSendScheduledNotification();
-setInterval(checkAndSendScheduledNotification, 60 * 1000);
 });
 
 // イベントリスナー設定
 function setupEventListeners() {
-document.getElementById('add-form').addEventListener('submit', handleAddTask);
-document.getElementById('btn-notify').addEventListener('click', requestNotificationPermission);
-document.getElementById('btn-export-ics').addEventListener('click', exportToICS);
+  document.getElementById('add-form').addEventListener('submit', handleAddTask);
+  document.getElementById('btn-export-ics').addEventListener('click', exportToICS);
 }
 
 // タスク追加処理
@@ -222,27 +217,6 @@ row.appendChild(actionArea);
 return row;
 }
 
-// Notification APIの要求
-async function requestNotificationPermission() {
-if (!('Notification' in window)) {
-alert('このブラウザは通知に対応していません。');
-return;
-}
-
-const permission = await Notification.requestPermission();
-if (permission === 'granted') {
-alert('Web Push通知が許可されました。');
-// 簡単なテスト通知
-navigator.serviceWorker.ready.then(registration => {
-registration.showNotification('通知設定完了', {
-body: '復習スケジュールのお知らせがここに届きます。',
-icon: 'icon.png'
-});
-});
-} else {
-alert('通知許可が拒否されました。設定から変更できます。');
-}
-}
 
 // .ics ファイル生成およびダウンロード
 function exportToICS() {
@@ -258,20 +232,30 @@ let icsContent = [
 ];
 
 tasks.forEach(task => {
-task.reviews.forEach(review => {
-// 日付フォーマット変換 YYYYMMDD
-const cleanDate = review.date.replace(/-/g, '');
-icsContent.push('BEGIN:VEVENT');
-icsContent.push(`SUMMARY:【復習】${task.title}（${review.days}日後）`);
-icsContent.push(`DTSTART;VALUE=DATE:${cleanDate}`);
-icsContent.push(`DESCRIPTION:エビングハウスの忘却曲線に基づく${review.days}日後の復習です。`);
-icsContent.push('BEGIN:VALARM');
-icsContent.push('ACTION:DISPLAY');
-icsContent.push('DESCRIPTION:Reminder');
-icsContent.push('TRIGGER:-PT9H'); // 前日21時または当日朝9時に通知（標準9h調整）
-icsContent.push('END:VALARM');
-icsContent.push('END:VEVENT');
-});
+  task.reviews.forEach(review => {
+    // 日付フォーマット変換 YYYYMMDD
+    const cleanDate = review.date.replace(/-/g, '');
+    icsContent.push('BEGIN:VEVENT');
+    icsContent.push(`SUMMARY:【復習】${task.title}（${review.days}日後）`);
+    icsContent.push(`DTSTART;VALUE=DATE:${cleanDate}`);
+    icsContent.push(`DESCRIPTION:エビングハウスの忘却曲線に基づく${review.days}日後の復習です。`);
+
+    // ① 朝8時の通知アラームを追加（当日0時から +8時間）
+    icsContent.push('BEGIN:VALARM');
+    icsContent.push('ACTION:DISPLAY');
+    icsContent.push('DESCRIPTION:☀️ おはようございます！ 今日は復習があります。');
+    icsContent.push('TRIGGER;RELATED=START:+PT8H');
+    icsContent.push('END:VALARM');
+
+    // ② 夜9時の通知アラームを追加（当日0時から +21時間）
+    icsContent.push('BEGIN:VALARM');
+    icsContent.push('ACTION:DISPLAY');
+    icsContent.push('DESCRIPTION:🔥 今日の復習、まだ間に合います！ 未完了の復習があります。');
+    icsContent.push('TRIGGER;RELATED=START:+PT21H');
+    icsContent.push('END:VALARM');
+
+    icsContent.push('END:VEVENT');
+  });
 });
 
 icsContent.push('END:VCALENDAR');
@@ -286,60 +270,3 @@ link.click();
 document.body.removeChild(link);
 }
 
-// Service Worker登録
-function registerServiceWorker() {
-if ('serviceWorker' in navigator) {
-navigator.serviceWorker.register('sw.js').catch(err => {
-console.error('ServiceWorker 登録失敗:', err);
-});
-}
-}
-
-// 通知を送信するヘルパー関数
-function sendNotification(title, body) {
-if (Notification.permission === 'granted') {
-if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-navigator.serviceWorker.ready.then(reg => {
-reg.showNotification(title, { body: body, icon: 'icon.png' });
-});
-} else {
-new Notification(title, { body: body, icon: 'icon.png' });
-}
-}
-}
-
-// 午前8時・午後9時の自動通知チェックロジック
-function checkAndSendScheduledNotification() {
-if (Notification.permission !== 'granted') return;
-
-const now = new Date();
-const todayStr = now.toISOString().split('T')[0];
-const hours = now.getHours();
-
-let todayTotal = 0;
-let todayUncompleted = 0;
-
-tasks.forEach(task => {
-task.reviews.forEach(review => {
-if (review.date === todayStr) {
-todayTotal++;
-if (!review.completed) todayUncompleted++;
-}
-});
-});
-
-const morningKey = `notified_morning_${todayStr}`;
-const eveningKey = `notified_evening_${todayStr}`;
-
-// ① 午前8時の通知
-if (hours === 8 && todayTotal > 0 && !localStorage.getItem(morningKey)) {
-sendNotification('☀️ おはようございます！', `今日は復習が${todayTotal}件あります。`);
-localStorage.setItem(morningKey, 'true');
-}
-
-// ② 午後9時の通知
-if (hours === 21 && todayUncompleted > 0 && !localStorage.getItem(eveningKey)) {
-sendNotification('🔥 今日の復習、まだ間に合います！', `未完了の復習が${todayUncompleted}件あります。`);
-localStorage.setItem(eveningKey, 'true');
-}
-}
