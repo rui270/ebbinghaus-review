@@ -217,56 +217,68 @@ row.appendChild(actionArea);
 return row;
 }
 
-
-// .ics ファイル生成およびダウンロード
+// .ics ファイル生成およびダウンロード（朝8時のみ・連打防止版）
 function exportToICS() {
-if (tasks.length === 0) {
-alert('登録された学習項目がありません。');
-return;
-}
+  if (tasks.length === 0) {
+    alert('登録された学習項目がありません。');
+    return;
+  }
 
-let icsContent = [
-'BEGIN:VCALENDAR',
-'VERSION:2.0',
-'PRODID:-//Ebbinghaus Review App//JP'
-];
+  // 1. 日付ごとに復習タスクをグループ化する
+  const dateMap = {};
 
-tasks.forEach(task => {
-  task.reviews.forEach(review => {
-    // 日付フォーマット変換 YYYYMMDD
-    const cleanDate = review.date.replace(/-/g, '');
+  tasks.forEach(task => {
+    task.reviews.forEach(review => {
+      if (!dateMap[review.date]) {
+        dateMap[review.date] = [];
+      }
+      dateMap[review.date].push({
+        title: task.title,
+        days: review.days,
+        completed: review.completed
+      });
+    });
+  });
+
+  let icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Ebbinghaus Review App//JP'
+  ];
+
+  // 2. 日付ごとに1つだけ「朝8時」のイベントを作成
+  Object.keys(dateMap).forEach(dateStr => {
+    const cleanDate = dateStr.replace(/-/g, '');
+    const dayTasks = dateMap[dateStr];
+
+    // その日にやるべきタスクの概要テキスト（カレンダーの詳細欄用）
+    const taskSummaryList = dayTasks.map(t => `・${t.title}（${t.days}日後）`).join('\\n');
+
+    // --- 朝8時の通知イベント（1日1回のみ） ---
     icsContent.push('BEGIN:VEVENT');
-    icsContent.push(`SUMMARY:【復習】${task.title}（${review.days}日後）`);
+    // 通知画面に表示されるタイトル
+    icsContent.push('SUMMARY:☀️ おはようございます！ 今日は復習があります。');
     icsContent.push(`DTSTART;VALUE=DATE:${cleanDate}`);
-    icsContent.push(`DESCRIPTION:エビングハウスの忘却曲線に基づく${review.days}日後の復習です。`);
-
-    // ① 朝8時の通知アラームを追加（当日0時から +8時間）
+    icsContent.push(`DESCRIPTION:【本日の復習内容】\\n${taskSummaryList}`);
+    
+    // 朝8時のアラーム設定
     icsContent.push('BEGIN:VALARM');
     icsContent.push('ACTION:DISPLAY');
-    icsContent.push('DESCRIPTION:☀️ おはようございます！ 今日は復習があります。');
-    icsContent.push('TRIGGER;RELATED=START:+PT8H');
+    icsContent.push('DESCRIPTION:朝のリマインド');
+    icsContent.push('TRIGGER;RELATED=START:+PT8H'); // 当日0時から+8時間（朝8時）
     icsContent.push('END:VALARM');
-
-    // ② 夜9時の通知アラームを追加（当日0時から +21時間）
-    icsContent.push('BEGIN:VALARM');
-    icsContent.push('ACTION:DISPLAY');
-    icsContent.push('DESCRIPTION:🔥 今日の復習、まだ間に合います！ 未完了の復習があります。');
-    icsContent.push('TRIGGER;RELATED=START:+PT21H');
-    icsContent.push('END:VALARM');
-
     icsContent.push('END:VEVENT');
   });
-});
 
-icsContent.push('END:VCALENDAR');
+  icsContent.push('END:VCALENDAR');
 
-const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8;' });
-const url = URL.createObjectURL(blob);
-const link = document.createElement('a');
-link.href = url;
-link.setAttribute('download', 'ebbinghaus_schedule.ics');
-document.body.appendChild(link);
-link.click();
-document.body.removeChild(link);
+  // ファイルのダウンロード処理
+  const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', 'ebbinghaus_schedule.ics');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
-
